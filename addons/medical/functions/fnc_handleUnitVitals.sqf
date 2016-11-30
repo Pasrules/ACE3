@@ -33,6 +33,32 @@ _bloodVolume = (_bloodVolume max 0) min DEFAULT_BLOOD_VOLUME;
 
 _unit setVariable  [QGVAR(bloodVolume), _bloodVolume, _syncValues];
 
+private _heartRate = (_unit getVariable [QGVAR(heartRate), 80]) + (_deltaT * ([_unit] call FUNC(getHeartRateChange)));
+_unit setVariable  [QGVAR(heartRate), _heartRate max 0, _syncValues];
+
+private _bloodPressure = [_unit] call FUNC(getBloodPressure);
+_unit setVariable  [QGVAR(bloodPressure), _bloodPressure, _syncValues];
+
+_bloodPressure params ["_bloodPressureL", "_bloodPressureH"];
+
+if (!(_unit getVariable [QGVAR(inCardiacArrest),false])) then {
+    if (_heartRate < 10 || _bloodPressureH < 30 || _bloodVolume < BLOOD_VOLUME_CARDIAC_ARREST) then {
+        [_unit, true, 10+ random(20)] call FUNC(setUnconscious); // safety check to ensure unconsciousness for units if they are not dead already.
+    };
+
+    if ((_bloodPressureH > 260)
+        || {_bloodPressureL < 40 && ({_heartRate > 190})}
+        || {(_bloodPressureH > 145 && {_heartRate > 150})}) then {
+
+        if (random(1) > 0.7) then {
+            [_unit] call FUNC(setCardiacArrest);
+        };
+    };
+    if (_heartRate > 200 || (_heartRate < 20)) then {
+        [_unit] call FUNC(setCardiacArrest);
+    };
+};
+
 TRACE_3("ACE_DEBUG",_bloodVolume,_syncValues,_unit);
 // Set variables for synchronizing information across the net
 if (_bloodVolume < BLOOD_VOLUME_HAS_LOST_SOME) then {
